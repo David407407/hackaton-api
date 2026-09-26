@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Patient = require('../models/Patient');
+const authMiddleware = require('../middleware/auth');
 
-// GET: Obtener pacientes con la información completa de sus pastillas (.populate)
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const patients = await Patient.find().populate('pastillas');
     res.status(200).json(patients);
@@ -12,11 +12,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST: Crear paciente
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const { nombre, edad, genero, colorTarjeta, porcentajeAdherencia, pastillas } = req.body;
-    
+
     const newPatient = new Patient({
       nombre,
       edad,
@@ -33,23 +32,21 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT: Actualizar datos del paciente o sus pastillas asignadas
-router.put('/:id', async (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const updatedPatient = await Patient.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     ).populate('pastillas');
-    
+
     res.status(200).json({ message: 'Paciente actualizado', patient: updatedPatient });
   } catch (error) {
     res.status(500).json({ error: 'Error al actualizar paciente', details: error.message });
   }
 });
 
-// DELETE: Eliminar paciente por ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     await Patient.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Paciente eliminado correctamente' });

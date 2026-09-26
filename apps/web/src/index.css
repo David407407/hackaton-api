@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/*
+ * Design system — Dispensador inteligente de pastillas.
+ * Todos los colores de la UI salen de aquí: en el JSX solo se usan las
+ * utilidades que generan estos tokens (bg-cream, text-ink, ring-teal, ...).
+ *
+ * Contraste: texto blanco sobre --color-teal (#0799b6) = 3.4:1, no llega a AA
+ * para texto de 15px. Para cumplir AA basta cambiarlo aquí a #0b7f97 (4.7:1).
+ */
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --color-cream: #f2e6cf;        /* fondo de la app */
+  --color-ink: #114c5f;          /* texto principal y sidebar */
+  --color-teal: #0799b6;         /* acción principal */
+  --color-indigo: #4a6eb0;       /* enlaces y acciones secundarias */
+  --color-mist: #9cd2d3;         /* detalles y decoraciones */
+  --color-online: #16a34a;
+  --color-online-soft: #dcfce7;
+  --color-online-ink: #15803d;
+
+  /* Estados que no venían en la paleta original (errores de formulario,
+     acciones destructivas y StatusPill tone="warning").
+     Texto blanco sobre --color-danger = 5.2:1 (AA). */
+  --color-danger: #c2410c;
+  --color-danger-soft: #ffedd5;
+  --color-danger-ink: #9a3412;
+  --color-warning: #d97706;
+  --color-warning-soft: #fef3c7;
+  --color-warning-ink: #92400e;
+
+  --shadow-card: 0 12px 32px -16px rgb(17 76 95 / .22), 0 2px 6px -2px rgb(17 76 95 / .06);
+  --shadow-panel: 0 30px 80px -30px rgb(17 76 95 / .35);
+  --shadow-cta: 0 10px 24px -10px rgb(7 153 182 / .75);
+  --shadow-cta-hover: 0 16px 30px -12px rgb(7 153 182 / .85);
+
+  --radius-panel: 32px;
+
+  /* estados */
+  --color-warn: #d97706;
+  --color-warn-soft: #fef3c7;
+  --color-warn-ink: #b45309;
+
+  /* Verde claro para indicadores "en línea" sobre fondo ink (sidebar). */
+  --color-online-bright: #4ade80;
+
+  /* tarjetas físicas del sensor */
+  --color-card-rojo: #dc2626;
+  --color-card-azul: #2563eb;
+  --color-card-verde: #16a34a;
+  --color-card-amarillo: #eab308;
+  --color-card-morado: #7c3aed;
+  --color-card-naranja: #ea580c;
+
+  --shadow-card-hover: 0 22px 44px -18px rgb(17 76 95 / .32), 0 4px 10px -4px rgb(17 76 95 / .08);
+  --shadow-nav-active: 0 10px 24px -12px rgb(7 153 182 / .9);
+
+  /* Relleno de ProgressBar: crece desde 0 al montarse. */
+  --animate-progress-grow: progress-grow 700ms ease-out;
+  @keyframes progress-grow {
+    from { transform: scaleX(0); }
+  }
+
+  /* Entrada de <Toast>: sube y aparece. Usa `transform` para no pelear con
+     `translate`, que es lo que usan las utilidades -translate-x-1/2. */
+  --animate-toast-in: toast-in 300ms cubic-bezier(.2, .8, .2, 1);
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(12px) scale(.98); }
+  }
+
+  /* Diálogos: overlay que aparece, modal que crece, drawer que entra por la
+     derecha y menú contextual que baja un poco. */
+  --animate-fade-in: fade-in 200ms ease-out;
+  @keyframes fade-in {
+    from { opacity: 0; }
+  }
+  --animate-dialog-in: dialog-in 260ms cubic-bezier(.2, .8, .2, 1);
+  @keyframes dialog-in {
+    from { opacity: 0; transform: translateY(10px) scale(.97); }
+  }
+  --animate-drawer-in: drawer-in 320ms cubic-bezier(.2, .8, .2, 1);
+  @keyframes drawer-in {
+    from { transform: translateX(100%); }
+  }
+  --animate-menu-in: menu-in 160ms ease-out;
+  @keyframes menu-in {
+    from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  }
+}
+
+@layer base {
+  html {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Fondo explícito: sin él, algunos navegadores en modo oscuro pintan el
+     lienzo transparente de negro. */
+  body {
+    background-color: var(--color-white);
+  }
+}

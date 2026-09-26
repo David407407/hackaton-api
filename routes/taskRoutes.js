@@ -1,25 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const authMiddleware = require('../middleware/auth');
 
-// 1. ENDPOINT PARA EL ARDUINO: Consultar si hay una pastilla que dispensar ahora
+// 1. ENDPOINT PARA EL ARDUINO — sin auth, deliberadamente
 router.get('/next', async (req, res) => {
   try {
-    // Busca la primera tarea pendiente ordenada por la hora programada más próxima
     const task = await Task.findOneAndUpdate(
       { status: 'pending' },
-      { status: 'completed' }, // La consumimos de inmediato para que el Arduino no la repita
+      { status: 'completed' },
       { sort: { scheduledTime: 1 }, new: true }
     ).populate('pacienteId pastillaId');
 
     if (!task) {
-      return res.status(200).json({ 
-        message: 'No hay tareas pendientes', 
-        task: null 
-      });
+      return res.status(200).json({ message: 'No hay tareas pendientes', task: null });
     }
 
-    // Devolvemos la orden limpia que el Arduino necesita leer fácilmente
     res.status(200).json({
       success: true,
       task: {
@@ -35,8 +31,8 @@ router.get('/next', async (req, res) => {
   }
 });
 
-// 2. ENDPOINT PARA EL DASHBOARD / SISTEMA: Crear una tarea de dispensación manual o programada
-router.post('/', async (req, res) => {
+// 2. Crear tarea — protegido
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const { pacienteId, pastillaId, slotMotor, scheduledTime } = req.body;
 
@@ -54,8 +50,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 3. ENDPOINT PARA VER HISTORIAL: Ver qué se ha dispensado o está pendiente
-router.get('/', async (req, res) => {
+// 3. Historial — protegido
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const tasks = await Task.find().sort({ createdAt: -1 }).limit(50).populate('pacienteId pastillaId');
     res.status(200).json(tasks);

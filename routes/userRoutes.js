@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const authMiddleware = require('../middleware/auth');
+
+router.use(authMiddleware);
 
 // GET: Obtener todos los usuarios
 router.get('/', async (req, res) => {
@@ -12,21 +15,25 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST: Crear un nuevo usuario (Registro)
+const bcrypt = require('bcryptjs');
+
 router.post('/', async (req, res) => {
   try {
     const { nombre, email, usuario, password, turno } = req.body;
-    
-    const newUser = new User({ 
-      nombre, 
-      email, 
-      usuario, 
-      password,
-      turno: turno || 'Matutino' 
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      nombre,
+      email,
+      usuario,
+      password: hashedPassword,
+      turno: turno || 'Matutino'
     });
-    
+
     await newUser.save();
-    res.status(201).json({ message: 'Usuario creado con éxito', user: newUser });
+    const { password: _, ...userWithoutPassword } = newUser.toObject();
+    res.status(201).json({ message: 'Usuario creado con éxito', user: userWithoutPassword });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear usuario', details: error.message });
   }

@@ -1,0 +1,60 @@
+/*
+ * Estilos heredados del template de Vite de los que dependen las páginas
+ * existentes (Home, About, PatientDashboard): columna centrada con bordes,
+ * tipografía de sistema de 18px y títulos grandes.
+ * Van acotados a .app-shell para que no se filtren a las pantallas hechas
+ * con Tailwind (p. ej. /login), ya que al no estar en ninguna @layer le
+ * ganarían a sus utilidades.
+ */
+.app-shell {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --border: #e5e4e7;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  width: 1126px;
+  max-width: 100%;
+  min-height: 100svh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-inline: 1px solid var(--border);
+  text-align: center;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color: var(--text);
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--heading);
+    font-weight: 500;
+    color: var(--text-h);
+  }
+
+  h1 {
+    font-size: 56px;
+    letter-spacing: -1.68px;
+    margin: 32px 0;
+    @media (max-width: 1024px) {
+      font-size: 36px;
+      margin: 20px 0;
+    }
+  }
+
+  h2 {
+    font-size: 24px;
+    line-height: 118%;
+    letter-spacing: -0.24px;
+    margin: 0 0 8px;
+    @media (max-width: 1024px) {
+      font-size: 20px;
+    }
+  }
+}

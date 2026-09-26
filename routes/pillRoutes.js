@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Pill = require('../models/Pill');
+const authMiddleware = require('../middleware/auth');
 
-// GET: Obtener todas las pastillas
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const pills = await Pill.find();
     res.status(200).json(pills);
@@ -12,19 +12,18 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST: Crear una pastilla / inventario
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     const { nombre, dosis, slotCompartimento, stockActual, stockMinimoAlerta, fechaInicio, recurrencia } = req.body;
-    
-    const newPill = new Pill({ 
-      nombre, 
-      dosis, 
-      slotCompartimento, 
-      stockActual, 
-      stockMinimoAlerta, 
-      fechaInicio, 
-      recurrencia 
+
+    const newPill = new Pill({
+      nombre,
+      dosis,
+      slotCompartimento,
+      stockActual,
+      stockMinimoAlerta,
+      fechaInicio,
+      recurrencia
     });
 
     await newPill.save();
@@ -34,8 +33,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT: Actualizar stock de la pastilla (Ideal para cuando se recargue o se dispense)
-router.put('/:id/stock', async (req, res) => {
+router.put('/:id/stock', authMiddleware, async (req, res) => {
   try {
     const { stockActual } = req.body;
     const updatedPill = await Pill.findByIdAndUpdate(
@@ -49,8 +47,7 @@ router.put('/:id/stock', async (req, res) => {
   }
 });
 
-// DELETE: Eliminar pastilla por ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     await Pill.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Pastilla eliminada correctamente' });
