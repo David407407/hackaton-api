@@ -1,0 +1,75 @@
+@baseUrl = http://localhost:4000/api
+
+### ==========================================
+### 1. PRUEBAS DE USUARIOS
+### ==========================================
+
+### Obtener todos los usuarios
+GET {{baseUrl}}/users
+
+### Crear un nuevo usuario
+POST {{baseUrl}}/users
+Content-Type: application/json
+
+{
+  "nombre": "Admin Principal",
+  "usuario": "admin",
+  "password": "123"
+}
+
+### (Copia un ID de usuario de la respuesta y pégalo abajo para borrarlo)
+# DELETE {{baseUrl}}/users/AQUI_EL_ID_DE_USUARIO
+
+
+### ==========================================
+### 2. PRUEBAS DE PASTILLAS
+### ==========================================
+
+### Obtener todas las pastillas
+GET {{baseUrl}}/pills
+
+### Crear una nueva pastilla
+POST {{baseUrl}}/pills
+Content-Type: application/json
+
+{
+  "nombre": "Paracetamol",
+  "dosis": "500mg",
+  "fechaInicio": "2026-03-26T00:00:00.000Z",
+  "recurrencia": {
+    "tipo": "intervalo",
+    "intervaloHoras": 8,
+    "horas": ["08:00", "16:00", "00:00"]
+  }
+}
+
+
+### ==========================================
+### 3. PRUEBAS DE PACIENTES (Relación con Pastillas)
+### ==========================================
+
+### Obtener pacientes (con las pastillas "populadas")
+GET {{baseUrl}}/patients
+
+### Crear un paciente 
+### (IMPORTANTE: Reemplaza el valor de "pastillas" con el _id real 
+### que te devolvió la petición de crear pastilla aquí arriba)
+POST {{baseUrl}}/patients
+Content-Type: application/json
+
+{
+  "nombre": "Don Pancho",
+  "edad": 72,
+  "genero": "Masculino",
+  "pastillas": [
+    "6ab7647ef90063d37df0c130"
+  ]
+}
+
+### Actualizar un paciente por ID
+PUT {{baseUrl}}/patients/6ab7649af90063d37df0c131
+Content-Type: application/json
+
+{
+  "edad": 73
+}
