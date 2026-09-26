@@ -17,7 +17,7 @@ function CompartmentsPanel({ tiles, className }) {
       className={className}
       actions={<p className="text-xs font-medium text-ink/60">Stock descontado con cada toma entregada</p>}
     >
-      <ul className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <ul className="mt-4 grid grid-cols-2 gap-3">
         {tiles.map((tile) =>
           tile.compartment ? (
             <CompartmentTile key={tile.id} compartment={tile.compartment} />

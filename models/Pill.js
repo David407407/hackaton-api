@@ -4,7 +4,7 @@ const pillSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   dosis: { type: String, required: true }, // Ej: "850 mg"
   forma: { type: String, enum: ['Tableta', 'Cápsula', 'Gragea'], default: 'Tableta' },
-  slotCompartimento: { type: Number, default: null, min: 1, max: 6 }, // C1 al C6 del dispensador; null = sin cargar
+  slotCompartimento: { type: Number, default: null, min: 1, max: 4 }, // C1 al C4 (un servo cada uno); null = sin cargar
   
   // Stock inicial y control
   stockActual: { type: Number, required: true }, 

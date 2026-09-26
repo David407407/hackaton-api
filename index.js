@@ -8,7 +8,9 @@ process.env.TZ = process.env.ZONA_HORARIA || 'America/Chihuahua';
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:5173' }));
+// Orígenes del frontend separados por coma (en Render: la URL donde se publique la web)
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map((origin) => origin.trim());
+app.use(cors({ origin: CORS_ORIGINS }));
 app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI;

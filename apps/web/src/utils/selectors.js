@@ -99,7 +99,7 @@ export function patientsByPill(patients) {
 }
 
 /**
- * Orden del catálogo: primero los cargados en el dispensador (C1…C6) y luego
+ * Orden del catálogo: primero los cargados en el dispensador (C1…C4) y luego
  * el resto por nombre.
  *
  * @param {Medication} a
@@ -126,13 +126,13 @@ export const compartmentOwners = (medications) =>
 
 /**
  * @typedef {object} CompartmentView
- * @property {number} id 1–6.
+ * @property {number} id 1–4.
  * @property {Medication | null} medication
  * @property {Patient[]} patients Con el medicamento asignado y activo.
  */
 
 /**
- * Los 6 compartimentos del dispensador con su medicamento (si tiene) y los
+ * Los compartimentos del dispensador con su medicamento (si tiene) y los
  * pacientes a los que se les entrega.
  *
  * @param {Medication[]} medications

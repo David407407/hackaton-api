@@ -5,7 +5,7 @@ import { compartmentLabel, medicationLabel } from '../../utils/labels'
 import { compartmentOwners } from '../../utils/selectors'
 
 /**
- * Compartimento del dispensador (C1–C6) o "Sin compartimento". Los ocupados
+ * Compartimento del dispensador (C1–C4) o "Sin compartimento".Los ocupados
  * muestran qué medicamento los tiene y van deshabilitados, salvo el del
  * medicamento que se edita.
  *

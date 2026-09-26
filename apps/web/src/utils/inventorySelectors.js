@@ -18,7 +18,7 @@ import { blockHourOf } from './selectors'
  * medicamento que tiene `compartmentId` (ver selectors.compartmentView).
  *
  * @typedef {object} Compartment
- * @property {number} id 1–6.
+ * @property {number} id 1–4.
  * @property {string} medicationId
  * @property {string} medication Nombre ("Metformina").
  * @property {string} dose Concentración ("850 mg").

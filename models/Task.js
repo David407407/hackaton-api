@@ -25,11 +25,15 @@ action: {
     type: Number, 
     required: true // El número de compartimento o servo que debe girar (ej: 1, 2, 3...)
   },
+  // pending → dispensing (el Arduino la pidió) → completed (el Arduino confirmó que giró el servo)
+  // missed = pasó la tolerancia o se agotaron los intentos sin confirmarse
   status: {
     type: String,
-    enum: ['pending', 'completed', 'missed'], // missed = pasó la tolerancia sin dispensarse
+    enum: ['pending', 'dispensing', 'completed', 'missed'],
     default: 'pending'
   },
+  reservedAt: { type: Date, default: null }, // Cuándo la pidió el Arduino por última vez
+  intentos: { type: Number, default: 0 }, // Veces que se entregó al Arduino
   scheduledTime: {
     type: Date,
     required: true // Hora exacta en la que debería tomarse/dispensarse

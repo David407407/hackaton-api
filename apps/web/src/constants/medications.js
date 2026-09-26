@@ -2,8 +2,8 @@ export const MEDICATION_UNITS = ['mg', 'mcg', 'g', 'UI'];
 
 export const MEDICATION_FORMS = ['Tableta', 'Cápsula', 'Gragea'];
 
-/** Compartimentos físicos del dispensador (C1–C6). */
-export const COMPARTMENT_IDS = [1, 2, 3, 4, 5, 6];
+/** Compartimentos físicos del dispensador (C1–C4), uno por servo. */
+export const COMPARTMENT_IDS = [1, 2, 3, 4];
 
 export const MEDICATION_LIMITS = {
   nameMin: 2,

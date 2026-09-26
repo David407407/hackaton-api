@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
  * asignarle uno.
  *
  * @param {object} props
- * @param {number} props.id 1–6.
+ * @param {number} props.id 1–4.
  */
 function EmptyCompartmentTile({ id }) {
   return (

@@ -2,7 +2,7 @@
 export const DISPENSER = {
   id: 'DC-01',
   online: true,
-  compartments: 6,
+  compartments: 4,
   signal: 98,
 };
 

@@ -128,3 +128,15 @@ Content-Type: application/json
   "password": "contraseñaSegura123",
   "turno": "Matutino"
 }
+
+### ==========================================
+### 5. ARDUINO (dispensador)
+### ==========================================
+### Pedir la siguiente toma (la deja reservada, no descuenta stock)
+GET {{baseUrl}}/tasks/next
+
+### Confirmar que el servo ya giró (marca entregada y descuenta stock)
+POST {{baseUrl}}/tasks/ID_DE_LA_TAREA/confirmar
+
+### Última conexión del dispensador (para "Hardware en línea")
+GET {{baseUrl}}/tasks/estado

@@ -13,9 +13,9 @@ import { api } from './apiClient'
  * @property {string | null} medicationId
  * @property {string} medication
  * @property {string} dose "850 mg"
- * @property {number} compartmentId Motor que gira (1–6).
+ * @property {number} compartmentId Servo que gira (1–4).
  * @property {number} quantity Pastillas por toma.
- * @property {'pending' | 'completed' | 'missed'} status
+ * @property {'pending' | 'dispensing' | 'completed' | 'missed'} status dispensing = el Arduino la pidió y falta que confirme.
  * @property {number} scheduledAt Timestamp (ms).
  * @property {number | null} dispensedAt Timestamp (ms).
  */

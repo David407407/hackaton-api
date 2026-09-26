@@ -43,7 +43,7 @@ export function validateMedication(medication) {
   if (!MEDICATION_FORMS.includes(medication.form)) errors.form = 'Elige la forma.'
 
   if (medication.compartmentId !== null && !COMPARTMENT_IDS.includes(medication.compartmentId)) {
-    errors.compartmentId = 'Elige un compartimento de C1 a C6.'
+    errors.compartmentId = `Elige un compartimento de C1 a C${COMPARTMENT_IDS.at(-1)}.`
   }
 
   const capacityValid = Number.isInteger(medication.capacity) && medication.capacity >= capacityMin && medication.capacity <= capacityMax

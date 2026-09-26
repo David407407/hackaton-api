@@ -14,7 +14,7 @@ import { normalizeMedication, validateMedication } from '../validation/medicatio
  * @property {number} strength
  * @property {'mg' | 'mcg' | 'g' | 'UI'} unit
  * @property {'Tableta' | 'Cápsula' | 'Gragea'} form
- * @property {number | null} compartmentId 1–6, o null si no está cargado en el dispensador.
+ * @property {number | null} compartmentId 1–4, o null si no está cargado en el dispensador.
  * @property {number} stock Pastillas restantes (0–capacity).
  * @property {number} capacity 1–60.
  * @property {string} notes

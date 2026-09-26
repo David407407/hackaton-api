@@ -8,6 +8,12 @@ const TOLERANCIA_MS = 2 * 60 * 60 * 1000;
 const DIAS_ADELANTE = 1;
 // Cada cuánto, como máximo, se revisan todas las asignaciones (el Arduino consulta seguido)
 const INTERVALO_REVISION_MS = 60 * 1000;
+// Si el Arduino pidió una tarea y no la confirmó en este tiempo (timeout, reinicio), vuelve a pendiente
+const RESERVA_MS = 2 * 60 * 1000;
+// Veces que se le entrega una tarea sin confirmar antes de darla por perdida (evita repetirla sin fin)
+const MAX_INTENTOS = 3;
+// Servos del dispensador (C1…C4); sale del modelo para no repetir el número
+const NUM_COMPARTIMENTOS = Pill.schema.path('slotCompartimento').options.max;
 
 /** Date local → "YYYY-MM-DD" (la zona la fija process.env.TZ en index.js) */
 function toISODate(date) {
@@ -48,8 +54,9 @@ function generationWindow(now = new Date()) {
 
 /** Crea las tareas que falten; las que ya existen (en cualquier estado) no se tocan */
 async function upsertTasks(assignment, pill, { desde, hasta }) {
-  // Sin compartimento el dispensador no puede entregarla: se da a mano
-  if (!assignment.activa || !pill || pill.slotCompartimento == null) return;
+  // Sin compartimento (o en uno que el dispensador no tiene) no puede entregarla: se da a mano
+  const slot = pill?.slotCompartimento;
+  if (!assignment.activa || slot == null || slot < 1 || slot > NUM_COMPARTIMENTOS) return;
 
   const ops = doseTimes(assignment, desde, hasta).map((scheduledTime) => ({
     updateOne: {
@@ -74,6 +81,13 @@ async function upsertTasks(assignment, pill, { desde, hasta }) {
     // Dos generaciones a la vez pueden chocar en el índice único: la tarea ya existe
     if (error.code !== 11000 && !error.writeErrors?.every((writeError) => writeError.code === 11000)) throw error;
   }
+}
+
+/** Reservas vencidas: vuelven a pendiente, o a 'missed' si ya agotaron sus intentos */
+async function releaseStaleReservations(now = new Date()) {
+  const stale = { status: 'dispensing', reservedAt: { $lt: new Date(now.getTime() - RESERVA_MS) } };
+  await Task.updateMany({ ...stale, intentos: { $gte: MAX_INTENTOS } }, { status: 'missed' });
+  await Task.updateMany(stale, { status: 'pending' });
 }
 
 async function markMissed(now = new Date()) {
@@ -111,6 +125,7 @@ let lastReview = 0;
  * vez por minuto.
  */
 async function ensureUpcomingTasks({ force = false } = {}) {
+  await releaseStaleReservations();
   await markMissed();
   if (!force && Date.now() - lastReview < INTERVALO_REVISION_MS) return;
   lastReview = Date.now();
@@ -125,4 +140,4 @@ const assignments = await Assignment.find({ activa: true });
   }
 }
 
-module.exports = { TOLERANCIA_MS, doseTimes, ensureUpcomingTasks, syncAssignmentTasks, syncPillTasks };
+module.exports = { TOLERANCIA_MS, RESERVA_MS, MAX_INTENTOS, NUM_COMPARTIMENTOS, doseTimes,ensureUpcomingTasks, syncAssignmentTasks, syncPillTasks };
