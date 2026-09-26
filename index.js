@@ -9,7 +9,12 @@ process.env.TZ = process.env.ZONA_HORARIA || 'America/Chihuahua';
 const app = express();
 
 // Orígenes del frontend separados por coma (en Render: la URL donde se publique la web)
-const CORS_ORIGINS = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map((origin) => origin.trim());
+const DEFAULT_ORIGINS = 'http://localhost:5173,https://hackaton-api-frontend.onrender.com';
+// El navegador manda el origen sin "/" final: se quita por si viene en la variable
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || DEFAULT_ORIGINS)
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 app.use(cors({ origin: CORS_ORIGINS }));
 app.use(express.json());
 
