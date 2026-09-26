@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '../components/layout/PageHeader'
 import DeleteMedicationDialog from '../components/medications/DeleteMedicationDialog'
 import MedicationFormModal from '../components/medications/MedicationFormModal'
@@ -11,28 +11,30 @@ import useDisclosure from '../hooks/useDisclosure'
 import useDocumentTitle from '../hooks/useDocumentTitle'
 import useMedicationFilters from '../hooks/useMedicationFilters'
 import useNotify from '../hooks/useNotify'
-import usePatientsByMedication from '../hooks/usePatientsByMedication'
+import * as patientService from '../services/patientService'
 import * as pillService from '../services/pillService'
 import { medicationLabel } from '../utils/labels'
+import { compareMedications, patientsByPill } from '../utils/selectors'
 
 function Medications() {
   useDocumentTitle('Medicamentos')
-  const [medications, setMedications] = useState([])
+  const [pills, setPills] = useState([])
+  const [patients, setPatients] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
-  const patientsByMedication = usePatientsByMedication()
+  const medications = useMemo(() => [...pills].sort(compareMedications), [pills])
+  const patientsByMedication = useMemo(() => patientsByPill(patients), [patients])
   const { search, setSearch, filter, setFilter, counts, filteredMedications, clearFilters } =
     useMedicationFilters(medications)
   const notify = useNotify()
 
   useEffect(() => {
     let ignore = false
-    setIsLoading(true)
-    pillService
-      .list()
-      .then((data) => {
+Promise.all([pillService.listMedications(), patientService.list()])
+      .then(([pillData, patientData]) => {
         if (ignore) return
-        setMedications(data)
+        setPills(pillData)
+        setPatients(patientData)
         setError(null)
       })
       .catch((err) => {
@@ -51,9 +53,15 @@ function Medications() {
   const { isOpen: isDeleteOpen, payload: deletingMedication, open: openDelete, close: closeDelete } = useDisclosure()
 
   const handleSaved = (medication, isEdit) => {
+    setPills((current) =>
+      isEdit ? current.map((item) => (item.id === medication.id ? medication : item)) : [...current, medication],
+    )
     closeForm()
     notify(isEdit ? 'Cambios guardados' : `${medicationLabel(medication)} agregado al catálogo`)
   }
+
+  const handleDeleted = (medication) => setPills((current) => current.filter((item) => item.id !== medication.id))
+  const handleRestored = (medication) => setPills((current) => [...current, medication])
 
   return (
     <>
@@ -100,10 +108,17 @@ function Medications() {
       <MedicationFormModal
         open={isFormOpen}
         medication={editingMedication}
+        medications={medications}
         onClose={closeForm}
         onSaved={handleSaved}
       />
-      <DeleteMedicationDialog medication={isDeleteOpen ? deletingMedication : null} onClose={closeDelete} />
+      <DeleteMedicationDialog
+        medication={isDeleteOpen ? deletingMedication : null}
+        patientsByMedication={patientsByMedication}
+        onClose={closeDelete}
+        onDeleted={handleDeleted}
+        onRestored={handleRestored}
+      />
     </>
   )
 }

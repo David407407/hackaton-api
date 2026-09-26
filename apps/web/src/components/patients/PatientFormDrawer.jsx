@@ -3,7 +3,6 @@ import AvatarCustomizer from './AvatarCustomizer'
 import CardColorBadge from './CardColorBadge'
 import CardColorPicker from './CardColorPicker'
 import PatientAvatar from './PatientAvatar'
-import PhotoPicker from './PhotoPicker'
 import Button from '../ui/Button'
 import Drawer from '../ui/Drawer'
 import NumberStepper from '../ui/NumberStepper'
@@ -12,7 +11,7 @@ import TextField from '../ui/TextField'
 import { CARD_COLORS } from '../../constants/cardColors'
 import { createDefaultAvatar, DEFAULT_HAIR_BY_TITLE, PATIENT_LIMITS, PATIENT_TITLES } from '../../constants/patients'
 import useForm from '../../hooks/useForm'
-import usePatients from '../../hooks/usePatients'
+import * as patientService from '../../services/patientService'
 import { cardOwners } from '../../utils/selectors'
 import { normalizePatient, validatePatient } from '../../validation/patient'
 
@@ -28,8 +27,9 @@ const validate = (values) => validatePatient(normalizePatient(values))
  */
 function createInitialValues(patient, patients) {
   if (patient) {
-    const { title, name, age, card, photoUrl, avatar } = patient
-    return { title, name, age, card, photoUrl, avatar }
+    const { title, name, age, card, avatar } = patient
+    // Pacientes creados antes de guardar el avatar en la API no lo traen.
+    return { title, name, age, card, avatar: avatar ?? createDefaultAvatar(title, patients.length) }
   }
   const taken = new Set(patients.map((item) => item.card))
   return {
@@ -37,7 +37,6 @@ function createInitialValues(patient, patients) {
     name: '',
     age: DEFAULT_AGE,
     card: Object.keys(CARD_COLORS).find((color) => !taken.has(color)) ?? '',
-    photoUrl: null,
     avatar: createDefaultAvatar('Doña', patients.length),
   }
 }
@@ -49,6 +48,7 @@ function createInitialValues(patient, patients) {
  * @param {object} props
  * @param {boolean} props.open
  * @param {import('../../services/patientsService').Patient | null} [props.patient] Sin él, crea uno nuevo.
+ * @param {import('../../services/patientsService').Patient[]} props.patients Todos (para las tarjetas ocupadas).
  * @param {() => void} props.onClose
  * @param {(patient: import('../../services/patientsService').Patient, isEdit: boolean) => void} props.onSaved
  */
@@ -56,8 +56,7 @@ function PatientFormDrawer({ open, ...props }) {
   return open ? <PatientFormContent {...props} /> : null
 }
 
-function PatientFormContent({ patient = null, onClose, onSaved }) {
-  const { patients, createPatient, updatePatient } = usePatients()
+function PatientFormContent({ patient = null, patients, onClose, onSaved }) {
   const isEdit = Boolean(patient)
   const [initialValues] = useState(() => createInitialValues(patient, patients))
   const owners = useMemo(() => cardOwners(patients), [patients])
@@ -66,7 +65,9 @@ function PatientFormContent({ patient = null, onClose, onSaved }) {
     initialValues,
     validate,
     onSubmit: async (formValues) => {
-      const saved = isEdit ? await updatePatient(patient.id, formValues) : await createPatient(formValues)
+      const saved = isEdit
+        ? await patientService.update(patient.id, formValues)
+        : await patientService.create(formValues)
       onSaved(saved, isEdit)
     },
   })
@@ -173,25 +174,16 @@ function PatientFormContent({ patient = null, onClose, onSaved }) {
           error={errors.card}
         />
 
-        <PhotoPicker
-          id={`${FORM_ID}-photo`}
-          value={values.photoUrl}
-          onValueChange={(photoUrl) => setValue('photoUrl', photoUrl)}
-          error={errors.photoUrl}
-        />
-
-        {!values.photoUrl && (
-          <section aria-label="Apariencia del avatar">
-            <p className="mb-2 text-[13px] font-semibold text-ink">Apariencia del avatar</p>
-            <AvatarCustomizer
-              idPrefix={FORM_ID}
-              value={values.avatar}
-              onValueChange={(avatar) => setValue('avatar', avatar)}
-              showFacialHair={values.title === 'Don'}
-              errors={errors}
-            />
-          </section>
-        )}
+        <section aria-label="Apariencia del avatar">
+          <p className="mb-2 text-[13px] font-semibold text-ink">Apariencia del avatar</p>
+          <AvatarCustomizer
+            idPrefix={FORM_ID}
+            value={values.avatar}
+            onValueChange={(avatar) => setValue('avatar', avatar)}
+            showFacialHair={values.title === 'Don'}
+            errors={errors}
+          />
+        </section>
       </form>
     </Drawer>
   )

@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 const TOKEN_KEY = 'token'
 
 export function getToken() {
@@ -34,7 +34,12 @@ async function request(method, path, body) {
 
   const data = await readBody(res)
   if (!res.ok) {
-    throw new Error(data?.error || 'No se pudo completar la solicitud')
+    const error = new Error(data?.error || 'No se pudo completar la solicitud')
+    // { campo: 'mensaje' } para que useForm pinte el error bajo su campo.
+    if (data?.fields) error.fields = data.fields
+    // Pacientes que bloquean un borrado (409 "en uso").
+    if (data?.patientIds) error.patientIds = data.patientIds
+    throw error
   }
   return data
 }

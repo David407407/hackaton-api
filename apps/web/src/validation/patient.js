@@ -15,7 +15,6 @@ export function normalizePatient(input) {
     ...input,
     name: String(input.name ?? '').trim().replace(/\s+/g, ' '),
     age: input.age === '' || input.age == null ? NaN : Number(input.age),
-    photoUrl: input.photoUrl || null,
   }
 }
 
@@ -40,8 +39,6 @@ export function validatePatient(patient) {
   else if (patient.age < ageMin || patient.age > ageMax) errors.age = `La edad debe estar entre ${ageMin} y ${ageMax} años.`
 
   if (!CARD_COLORS[patient.card]) errors.card = 'Elige una tarjeta de color.'
-
-  if (patient.photoUrl && !patient.photoUrl.startsWith('data:image/')) errors.photoUrl = 'La foto no es válida.'
 
   const avatar = patient.avatar ?? {}
   if (!HAIR_VALUES.includes(avatar.hairStyle)) errors.hairStyle = 'Elige un estilo de cabello.'

@@ -33,9 +33,12 @@ Content-Type: application/json
 {
   "nombre": "Metformina",
   "dosis": "850 mg",
+  "forma": "Tableta",
   "slotCompartimento": 1,
   "stockActual": 30,
   "stockMinimoAlerta": 5,
+  "capacidad": 30,
+  "notas": "Con alimentos",
   "fechaInicio": "2026-09-26T00:00:00.000Z",
   "recurrencia": {
     "tipo": "intervalo",
@@ -61,11 +64,45 @@ Content-Type: application/json
   "edad": 82,
   "genero": "Femenino",
   "colorTarjeta": "Azul",
+  "avatar": {
+    "peinado": "chongo",
+    "lentes": true,
+    "barba": false,
+    "bigote": false,
+    "colorPiel": "#e8b894",
+    "colorCabello": "#ebe7e1",
+    "colorRopa": "#4a6eb0",
+    "colorFondo": "#cfe9ea"
+  },
   "porcentajeAdherencia": 96,
   "pastillas": [
     "6ab7647ef90063d37df0c130"
   ]
 }
+
+### ==========================================
+### 4. PROBAR ASIGNACIONES (Pastillas y horarios por paciente)
+### ==========================================
+
+### Asignar una pastilla a un paciente (usa IDs reales de arriba)
+POST {{baseUrl}}/assignments
+Content-Type: application/json
+
+{
+  "pacienteId": "ID_DEL_PACIENTE",
+  "pastillaId": "ID_DE_LA_PASTILLA",
+  "cantidad": 1,
+  "horas": ["08:00", "20:00"],
+  "frecuencia": "dias_especificos",
+  "dias": [1, 3, 5],
+  "fechaInicio": "2026-09-26",
+  "fechaFin": null,
+  "indicaciones": "Con alimentos",
+  "activa": true
+}
+
+### Asignaciones de un paciente
+GET {{baseUrl}}/assignments?pacienteId=ID_DEL_PACIENTE
 
 ### Obtener pacientes con sus pastillas "populadas"
 ### Crear usuario 1

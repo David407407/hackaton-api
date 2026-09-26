@@ -88,7 +88,7 @@ export function createSeed(now = new Date()) {
   const startDate = toISODate(addDays(now, -SEED_START_DAYS_AGO))
 
   return {
-    patients: PATIENTS.map((patient) => ({ photoUrl: null, ...patient, ...stamp })),
+    patients: PATIENTS.map((patient) => ({ ...patient, ...stamp })),
     medications: MEDICATIONS.map((medication) => ({ ...medication, ...stamp })),
     assignments: ASSIGNMENTS.map(([patientId, medicationId, quantity, times, instructions], index) => ({
       id: `asg-${index + 1}`,

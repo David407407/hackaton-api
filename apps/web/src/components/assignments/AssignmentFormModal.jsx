@@ -11,9 +11,8 @@ import Textarea from '../ui/Textarea'
 import TextField from '../ui/TextField'
 import TimeListInput from '../ui/TimeListInput'
 import { ASSIGNMENT_LIMITS, DAILY, WEEKDAYS } from '../../constants/schedule'
-import useAssignments from '../../hooks/useAssignments'
 import useForm from '../../hooks/useForm'
-import useMedications from '../../hooks/useMedications'
+import * as assignmentService from '../../services/assignmentService'
 import { compartmentLabel, medicationLabel } from '../../utils/labels'
 import { toISODate } from '../../utils/schedule'
 import { normalizeAssignment, validateAssignment } from '../../validation/assignment'
@@ -54,6 +53,8 @@ function createInitialValues(patientId, assignment) {
  * @param {boolean} props.open
  * @param {import('../../services/patientsService').Patient} props.patient
  * @param {import('../../services/assignmentsService').Assignment | null} [props.assignment] Sin ella, crea una nueva.
+ * @param {import('../../services/assignmentsService').Assignment[]} props.assignments Las del paciente.
+ * @param {import('../../services/medicationsService').Medication[]} props.medications Todo el catálogo.
  * @param {() => void} props.onClose
  * @param {(assignment: import('../../services/assignmentsService').Assignment, isEdit: boolean) => void} props.onSaved
  */
@@ -61,10 +62,8 @@ function AssignmentFormModal({ open, ...props }) {
   return open ? <AssignmentFormContent {...props} /> : null
 }
 
-function AssignmentFormContent({ patient, assignment = null, onClose, onSaved }) {
+function AssignmentFormContent({ patient, assignment = null, assignments, medications, onClose, onSaved }) {
   const isEdit = Boolean(assignment)
-  const { medications } = useMedications()
-  const { assignments, createAssignment, updateAssignment } = useAssignments(patient.id)
   const [initialValues] = useState(() => createInitialValues(patient.id, assignment))
 
   const { values, errors, isSubmitting, submitError, setValue, handleChange, handleBlur, handleSubmit } = useForm({
@@ -72,8 +71,8 @@ function AssignmentFormContent({ patient, assignment = null, onClose, onSaved })
     validate,
     onSubmit: async (formValues) => {
       const saved = isEdit
-        ? await updateAssignment(assignment.id, formValues)
-        : await createAssignment(formValues)
+        ? await assignmentService.update(assignment.id, { ...formValues, active: assignment.active })
+        : await assignmentService.create(formValues)
       onSaved(saved, isEdit)
     },
   })

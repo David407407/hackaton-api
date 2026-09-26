@@ -7,12 +7,12 @@ import { memo } from 'react'
  */
 
 /**
- * Foto del paciente o, si no tiene, un retrato ilustrado en SVG.
- * Solo necesita `name`, `photoUrl` y `avatar`, así sirve también para la
- * vista previa del formulario.
+ * Retrato ilustrado del paciente en SVG (o su inicial si no tiene avatar).
+ * Solo necesita `name` y `avatar`, así sirve también para la vista previa del
+ * formulario.
  *
  * @param {object} props
- * @param {Pick<import('../../services/patientsService').Patient, 'name' | 'photoUrl' | 'avatar'>} props.patient
+ * @param {Pick<import('../../services/patientsService').Patient, 'name' | 'avatar'>} props.patient
  * @param {number} [props.size=64] Lado en px.
  * @param {string} [props.className]
  */
@@ -33,18 +33,6 @@ function PatientAvatar({ patient, size = 64, className }) {
       >
         {initial}
       </span>
-    )
-  }
-
-  if (patient.photoUrl) {
-    return (
-      <img
-        src={patient.photoUrl}
-        alt={`Foto de ${name}`}
-        width={size}
-        height={size}
-        className={clsx('shrink-0 rounded-full object-cover', className)}
-      />
     )
   }
 

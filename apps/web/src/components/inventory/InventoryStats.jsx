@@ -9,9 +9,8 @@ const ALERT_STATES = {
 /**
  * @param {ReturnType<typeof import('../../utils/inventorySelectors').inventoryTotals>} totals
  * @param {number} alertCount
- * @param {number} temperature
  */
-function getStats(totals, alertCount, temperature) {
+function getStats(totals, alertCount) {
   return [
     {
       id: 'doses',
@@ -20,7 +19,9 @@ function getStats(totals, alertCount, temperature) {
       suffix: `/ ${totals.planned}`,
       icon: Pill,
       iconTone: 'teal',
-      note: 'Actualizado por sensor en vivo',
+      note:
+        `${totals.pending} ${totals.pending === 1 ? 'pendiente' : 'pendientes'}` +
+        (totals.missed ? ` · ${totals.missed} sin dispensar` : ''),
     },
     {
       id: 'stock',
@@ -37,7 +38,7 @@ function getStats(totals, alertCount, temperature) {
       suffix: `/ ${totals.totalCompartments}`,
       icon: Cpu,
       iconTone: 'neutral',
-      note: `Temperatura interna ${temperature.toFixed(1)} °C`,
+      note: 'Con pastillas cargadas',
     },
     {
       id: 'alerts',
@@ -54,12 +55,11 @@ function getStats(totals, alertCount, temperature) {
  * @param {object} props
  * @param {ReturnType<typeof import('../../utils/inventorySelectors').inventoryTotals>} props.totals
  * @param {number} props.alertCount Compartimentos con stock bajo.
- * @param {number} props.temperature Temperatura interna, en °C.
  */
-function InventoryStats({ totals, alertCount, temperature }) {
+function InventoryStats({ totals, alertCount }) {
   return (
     <section aria-label="Indicadores" className="mt-7 grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
-      {getStats(totals, alertCount, temperature).map(({ id, ...stat }) => (
+      {getStats(totals, alertCount).map(({ id, ...stat }) => (
         <StatCard key={id} {...stat} />
       ))}
     </section>

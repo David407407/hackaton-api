@@ -22,6 +22,10 @@ export const activeAssignments = (assignments) => assignments.filter((assignment
 export const assignmentsOf = (assignments, patientId) =>
   assignments.filter((assignment) => assignment.patientId === patientId)
 
+/** Activas primero; dentro de cada grupo, por su primer horario. @param {Assignment} a @param {Assignment} b */
+export const compareAssignments = (a, b) =>
+  Number(b.active) - Number(a.active) || a.times[0].localeCompare(b.times[0])
+
 /** Número de asignaciones activas del paciente. @param {Assignment[]} assignments @param {string} patientId */
 export const medsCount = (assignments, patientId) => activeAssignments(assignmentsOf(assignments, patientId)).length
 
@@ -79,23 +83,32 @@ export function patientsForMedication(assignments, patients, medicationId) {
 }
 
 /**
- * Lo mismo que patientsForMedication, para todos los medicamentos de una vez.
+ * Pacientes por id de pastilla, según `pastillas` de cada paciente de la API
+ * (vienen populadas o como ids).
  *
- * @param {Assignment[]} assignments
  * @param {Patient[]} patients
  * @returns {Map<string, Patient[]>}
  */
-export function patientsByMedication(assignments, patients) {
-  const byMedication = new Map()
+export function patientsByPill(patients) {
+  const byPill = new Map()
   for (const patient of patients) {
-    const medicationIds = new Set(
-      activeAssignments(assignmentsOf(assignments, patient.id)).map((assignment) => assignment.medicationId),
-    )
-    for (const medicationId of medicationIds) {
-      byMedication.set(medicationId, [...(byMedication.get(medicationId) ?? []), patient])
-    }
+    const pillIds = new Set((patient.pastillas ?? []).map((pill) => String(pill?._id ?? pill)))
+    for (const pillId of pillIds) byPill.set(pillId, [...(byPill.get(pillId) ?? []), patient])
   }
-  return byMedication
+  return byPill
+}
+
+/**
+ * Orden del catálogo: primero los cargados en el dispensador (C1…C6) y luego
+ * el resto por nombre.
+ *
+ * @param {Medication} a
+ * @param {Medication} b
+ */
+export function compareMedications(a, b) {
+  const slotA = a.compartmentId ?? Infinity
+  const slotB = b.compartmentId ?? Infinity
+  return slotA - slotB || a.name.localeCompare(b.name, 'es')
 }
 
 /* ---------- Tarjetas y compartimentos ---------- */
@@ -135,52 +148,24 @@ export function compartmentView(medications, assignments, patients) {
   })
 }
 
-/** @param {Medication} medication */
-export const isLowStock = (medication) => medication.stock / medication.capacity <= LOW_STOCK_RATIO
+/**
+ * Con `lowStockAt` (stockMinimoAlerta de la API) usa ese umbral; si no, el 25%
+ * de la capacidad.
+ *
+ * @param {Medication & { lowStockAt?: number }} medication
+ */
+export const isLowStock = (medication) =>
+  medication.lowStockAt != null
+    ? medication.stock <= medication.lowStockAt
+    : medication.stock / medication.capacity <= LOW_STOCK_RATIO
 
 /* ---------- Dosis del día ---------- */
 
-/**
- * Tomas de hoy que puede entregar el dispensador: asignaciones activas que
- * aplican hoy y cuyo medicamento está en un compartimento.
- *
- * @param {Assignment[]} assignments
- * @param {Medication[]} medications
- * @param {Date} date
- * @returns {{ assignment: Assignment, time: string }[]}
- */
-export function dispensableDoses(assignments, medications, date) {
-  const loaded = new Set(
-    medications.filter((medication) => medication.compartmentId !== null).map((medication) => medication.id),
-  )
-  return assignments
-    .filter((assignment) => loaded.has(assignment.medicationId) && appliesOn(assignment, date))
-    .flatMap((assignment) => assignment.times.map((time) => ({ assignment, time })))
-}
-
 /** Bloque de 2 h al que pertenece una hora (antes de las 06 cuenta como 06). @param {string} time */
-function blockHourOf(time) {
+export function blockHourOf(time) {
   const hour = Number(time.slice(0, 2))
   return DOSE_BLOCK_HOURS.findLast((blockHour) => blockHour <= hour) ?? DOSE_BLOCK_HOURS[0]
 }
-
-/**
- * Tomas programadas por bloque de 2 h para la gráfica del inventario.
- *
- * @param {Assignment[]} assignments
- * @param {Medication[]} medications
- * @param {Date} date
- * @returns {import('../data/inventory').DoseSlot[]}
- */
-export function doseSlots(assignments, medications, date) {
-  const counts = new Map(DOSE_BLOCK_HOURS.map((hour) => [hour, 0]))
-  for (const { time } of dispensableDoses(assignments, medications, date)) {
-    const hour = blockHourOf(time)
-    counts.set(hour, counts.get(hour) + 1)
-  }
-  return DOSE_BLOCK_HOURS.map((hour) => ({ hour, planned: counts.get(hour) }))
-}
-
 /**
  * Tomas de hoy (todas las activas) y cuántas ya pasaron su hora. Mientras no
  * haya historial real, "pasaron su hora" cuenta como entregada.

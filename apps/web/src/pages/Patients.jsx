@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import PageHeader from '../components/layout/PageHeader'
 import CardColorFilter from '../components/patients/CardColorFilter'
 import DeletePatientDialog from '../components/patients/DeletePatientDialog'
@@ -14,51 +14,40 @@ import { FACILITY } from '../data/session'
 import useDisclosure from '../hooks/useDisclosure'
 import useDocumentTitle from '../hooks/useDocumentTitle'
 import useNotify from '../hooks/useNotify'
+import useNow from '../hooks/useNow'
 import usePatientFilters from '../hooks/usePatientFilters'
-import usePatientSummaries from '../hooks/usePatientSummaries'
+import usePatientsData from '../hooks/usePatientsData'
 import useSearchParamDialog from '../hooks/useSearchParamDialog'
-import useTodayDoses from '../hooks/useTodayDoses'
-import * as patientService from '../services/patientService'
 import { formatLongDate } from '../utils/formatDate'
+import { assignmentsOf, patientSummaries, todayDoseSummary } from '../utils/selectors'
 
 const CARD_COUNT = Object.keys(CARD_COLORS).length
 
 function Patients() {
   useDocumentTitle('Pacientes')
-  const [patients, setPatients] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const summaries = usePatientSummaries()
-  const doses = useTodayDoses()
+  const {
+    patients,
+    medications,
+    assignments,
+    isLoading,
+    error,
+    savePatient,
+    removePatient,
+    addRestoredPatient,
+    saveAssignment,
+    removeAssignment,
+  } = usePatientsData()
+  const now = useNow()
+  const summaries = useMemo(() => patientSummaries(patients, assignments, now), [patients, assignments, now])
+  const doses = useMemo(() => todayDoseSummary(assignments, now), [assignments, now])
   const { search, setSearch, cardColor, setCardColor, filteredPatients, clearFilters } = usePatientFilters(patients)
   const notify = useNotify()
-
-  useEffect(() => {
-    let ignore = false
-    setIsLoading(true)
-    patientService
-      .list()
-      .then((data) => {
-        if (ignore) return
-        setPatients(data)
-        setError(null)
-      })
-      .catch((err) => {
-        if (ignore) return
-        setError(err)
-      })
-      .finally(() => {
-        if (!ignore) setIsLoading(false)
-      })
-    return () => {
-      ignore = true
-    }
-  }, [])
 
   const { value: detailId, open: openDetail, close: closeDetail } = useSearchParamDialog('paciente')
   const { isOpen: isFormOpen, payload: editingPatient, open: openForm, close: closeForm } = useDisclosure()
   const { isOpen: isDeleteOpen, payload: deletingPatient, open: openDelete, close: closeDelete } = useDisclosure()
 
+  const detailPatient = patients.find((patient) => patient.id === detailId) ?? null
   const allCardsTaken = new Set(patients.map((patient) => patient.card)).size >= CARD_COUNT
 
   const handleCreate = useCallback(() => {
@@ -72,11 +61,13 @@ function Patients() {
   const handleOpen = useCallback((patient) => openDetail(patient.id), [openDetail])
 
   const handleSaved = (patient, isEdit) => {
+    savePatient(patient)
     closeForm()
     notify(isEdit ? 'Cambios guardados' : `${patient.name} registrado`)
   }
 
   const handleDeleted = (patient) => {
+    removePatient(patient.id)
     if (patient.id === detailId) closeDetail()
   }
 
@@ -128,12 +119,29 @@ function Patients() {
         onClearFilters={clearFilters}
       />
 
-      <PatientDetailDrawer patientId={detailId} onClose={closeDetail} onEdit={openForm} onDelete={openDelete} />
-      <PatientFormDrawer open={isFormOpen} patient={editingPatient} onClose={closeForm} onSaved={handleSaved} />
+      <PatientDetailDrawer
+        patient={detailPatient}
+        assignments={detailPatient ? assignmentsOf(assignments, detailPatient.id) : []}
+        medications={medications}
+        onClose={closeDetail}
+        onEdit={openForm}
+        onDelete={openDelete}
+        onAssignmentSaved={saveAssignment}
+        onAssignmentRemoved={removeAssignment}
+      />
+      <PatientFormDrawer
+        open={isFormOpen}
+        patient={editingPatient}
+        patients={patients}
+        onClose={closeForm}
+        onSaved={handleSaved}
+      />
       <DeletePatientDialog
         patient={isDeleteOpen ? deletingPatient : null}
+        assignmentCount={deletingPatient ? assignmentsOf(assignments, deletingPatient.id).length : 0}
         onClose={closeDelete}
         onDeleted={handleDeleted}
+        onRestored={addRestoredPatient}
       />
     </>
   )

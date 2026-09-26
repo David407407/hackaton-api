@@ -8,42 +8,48 @@ import AssignmentList from '../assignments/AssignmentList'
 import Button from '../ui/Button'
 import Drawer from '../ui/Drawer'
 import InfoTile from '../ui/InfoTile'
-import useAssignments from '../../hooks/useAssignments'
 import useDisclosure from '../../hooks/useDisclosure'
-import useMedications from '../../hooks/useMedications'
 import useNotify from '../../hooks/useNotify'
-import usePatient from '../../hooks/usePatient'
+import useNow from '../../hooks/useNow'
 import { errorMessage } from '../../lib/errors'
+import * as assignmentService from '../../services/assignmentService'
 import { medicationLabel } from '../../utils/labels'
+import { formatNextDose } from '../../utils/schedule'
+import { compareAssignments, medsCount, nextDose } from '../../utils/selectors'
 
 /**
  * Detalle de un paciente en un drawer: datos, próxima dosis y sus
- * medicamentos asignados (con alta, edición, pausa y baja de asignaciones).
+ * medicamentos asignados (con alta, edición, pausa y baja de asignaciones en
+ * la API).
  *
  * @param {object} props
- * @param {string | null} props.patientId Sin id (o si el paciente no existe) no se muestra.
+ * @param {import('../../services/patientsService').Patient | null} props.patient Sin paciente no se muestra.
+ * @param {import('../../services/assignmentsService').Assignment[]} props.assignments Las del paciente.
+ * @param {import('../../services/medicationsService').Medication[]} props.medications Todo el catálogo.
  * @param {() => void} props.onClose
  * @param {(patient: import('../../services/patientsService').Patient) => void} props.onEdit
  * @param {(patient: import('../../services/patientsService').Patient) => void} props.onDelete
+ * @param {(assignment: import('../../services/assignmentsService').Assignment) => void} props.onAssignmentSaved
+ * @param {(assignmentId: string) => void} props.onAssignmentRemoved
  */
-function PatientDetailDrawer({ patientId, onClose, onEdit, onDelete }) {
-  const { patient, medsCount, nextDoseLabel } = usePatient(patientId)
-  if (!patient) return null
-  return (
-    <PatientDetailContent
-      patient={patient}
-      medsCount={medsCount}
-      nextDoseLabel={nextDoseLabel}
-      onClose={onClose}
-      onEdit={onEdit}
-      onDelete={onDelete}
-    />
-  )
+function PatientDetailDrawer({ patient, ...props }) {
+  return patient ? <PatientDetailContent patient={patient} {...props} /> : null
 }
 
-function PatientDetailContent({ patient, medsCount, nextDoseLabel, onClose, onEdit, onDelete }) {
-  const { assignments, toggleAssignment, deleteAssignment, restoreAssignment } = useAssignments(patient.id)
-  const { medications } = useMedications()
+function PatientDetailContent({
+  patient,
+  assignments: patientAssignments,
+  medications,
+  onClose,
+  onEdit,
+  onDelete,
+  onAssignmentSaved,
+  onAssignmentRemoved,
+}) {
+  const now = useNow()
+  const assignments = useMemo(() => [...patientAssignments].sort(compareAssignments), [patientAssignments])
+  const activeCount = medsCount(assignments, patient.id)
+  const nextDoseLabel = formatNextDose(nextDose(assignments, patient.id, now))
   const assignmentForm = useDisclosure()
   const { open: openAssignmentForm, close: closeAssignmentForm } = assignmentForm
   const notify = useNotify()
@@ -60,35 +66,40 @@ function PatientDetailContent({ patient, medsCount, nextDoseLabel, onClose, onEd
   const handleToggle = useCallback(
     async (assignment, active) => {
       try {
-        await toggleAssignment(assignment.id, active)
+        onAssignmentSaved(await assignmentService.setActive(assignment, active))
         notify(`${labelOf(assignment)} ${active ? 'activado' : 'pausado'}`)
       } catch (error) {
         notify({ message: errorMessage(error), tone: 'error' })
       }
     },
-    [toggleAssignment, labelOf, notify],
+    [onAssignmentSaved, labelOf, notify],
   )
 
   const handleRemove = useCallback(
     async (assignment) => {
       try {
-        const removed = await deleteAssignment(assignment.id)
+        const removed = await assignmentService.remove(assignment.id)
+        onAssignmentRemoved(removed.id)
         notify({
           message: `${labelOf(assignment)} quitado`,
           action: {
             label: 'Deshacer',
             onClick: () =>
-              restoreAssignment(removed).catch((error) => notify({ message: errorMessage(error), tone: 'error' })),
+              assignmentService
+                .restore(removed)
+                .then(onAssignmentSaved)
+                .catch((error) => notify({ message: errorMessage(error), tone: 'error' })),
           },
         })
       } catch (error) {
         notify({ message: errorMessage(error), tone: 'error' })
       }
     },
-    [deleteAssignment, restoreAssignment, labelOf, notify],
+    [onAssignmentSaved, onAssignmentRemoved, labelOf, notify],
   )
 
   const handleSaved = (assignment, isEdit) => {
+    onAssignmentSaved(assignment)
     closeAssignmentForm()
     notify(isEdit ? 'Asignación actualizada' : `${labelOf(assignment)} asignado`)
   }
@@ -124,7 +135,7 @@ function PatientDetailContent({ patient, medsCount, nextDoseLabel, onClose, onEd
           {nextDoseLabel}
         </InfoTile>
         <InfoTile label="Medicamentos" icon={Pill} iconClassName="text-indigo">
-          {medsCount} {medsCount === 1 ? 'activo' : 'activos'}
+          {activeCount} {activeCount === 1 ? 'activo' : 'activos'}
         </InfoTile>
       </div>
 
@@ -153,6 +164,8 @@ function PatientDetailContent({ patient, medsCount, nextDoseLabel, onClose, onEd
         open={assignmentForm.isOpen}
         patient={patient}
         assignment={assignmentForm.payload}
+        assignments={assignments}
+        medications={medications}
         onClose={closeAssignmentForm}
         onSaved={handleSaved}
       />

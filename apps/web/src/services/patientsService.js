@@ -27,7 +27,6 @@ import { normalizePatient, validatePatient } from '../validation/patient'
  * @property {string} name
  * @property {number} age
  * @property {keyof typeof CARD_COLORS} card Tarjeta física (única por paciente).
- * @property {string | null} photoUrl dataURL de 256 px.
  * @property {PatientAvatar} avatar
  * @property {number | null} adherence Mock hasta tener historial de tomas.
  * @property {'ok' | 'pending' | 'alert'} status Mock hasta tener historial de tomas.
@@ -45,8 +44,8 @@ import { normalizePatient, validatePatient } from '../validation/patient'
 function parsePatient(input) {
   const data = normalizePatient(input)
   throwIfErrors(validatePatient(data), (fields) => new ValidationError(fields))
-  const { title, name, age, card, photoUrl, avatar } = data
-  return { title, name, age, card, photoUrl, avatar: { ...avatar } }
+  const { title, name, age, card, avatar } = data
+  return { title, name, age, card, avatar: { ...avatar } }
 }
 
 /**

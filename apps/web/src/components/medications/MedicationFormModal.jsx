@@ -14,7 +14,7 @@ import {
   MEDICATION_UNITS,
 } from '../../constants/medications'
 import useForm from '../../hooks/useForm'
-import useMedications from '../../hooks/useMedications'
+import * as pillService from '../../services/pillService'
 import { medicationLabel } from '../../utils/labels'
 import { normalizeMedication, validateMedication } from '../../validation/medication'
 
@@ -48,6 +48,7 @@ function createInitialValues(medication) {
  * @param {object} props
  * @param {boolean} props.open
  * @param {import('../../services/medicationsService').Medication | null} [props.medication] Sin él, crea uno nuevo.
+ * @param {import('../../services/medicationsService').Medication[]} props.medications Todo el catálogo (para los compartimentos ocupados).
  * @param {() => void} props.onClose
  * @param {(medication: import('../../services/medicationsService').Medication, isEdit: boolean) => void} props.onSaved
  */
@@ -55,16 +56,17 @@ function MedicationFormModal({ open, ...props }) {
   return open ? <MedicationFormContent {...props} /> : null
 }
 
-function MedicationFormContent({ medication = null, onClose, onSaved }) {
+function MedicationFormContent({ medication = null, medications, onClose, onSaved }) {
   const isEdit = Boolean(medication)
-  const { medications, createMedication, updateMedication } = useMedications()
   const [initialValues] = useState(() => createInitialValues(medication))
 
   const { values, errors, isSubmitting, submitError, setValue, handleChange, handleBlur, handleSubmit } = useForm({
     initialValues,
     validate,
     onSubmit: async (formValues) => {
-      const saved = isEdit ? await updateMedication(medication.id, formValues) : await createMedication(formValues)
+      const saved = isEdit
+        ? await pillService.updateMedication(medication.id, formValues)
+        : await pillService.createMedication(formValues)
       onSaved(saved, isEdit)
     },
   })

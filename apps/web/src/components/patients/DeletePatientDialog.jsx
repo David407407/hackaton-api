@@ -1,8 +1,7 @@
 import ConfirmDialog from '../ui/ConfirmDialog'
-import useAssignments from '../../hooks/useAssignments'
 import useNotify from '../../hooks/useNotify'
-import usePatients from '../../hooks/usePatients'
 import { errorMessage } from '../../lib/errors'
+import * as patientService from '../../services/patientService'
 
 /** "Se eliminarán también sus 3 medicamentos asignados." @param {number} count */
 function cascadeMessage(count) {
@@ -12,26 +11,27 @@ function cascadeMessage(count) {
 }
 
 /**
- * Confirmación para eliminar a un paciente (y, en cascada, sus asignaciones).
- * Después muestra un toast con "Deshacer" durante 5 s.
+ * Confirmación para eliminar a un paciente en la API (y, en cascada, sus
+ * asignaciones). Después muestra un toast con "Deshacer" durante 5 s.
  *
  * @param {object} props
  * @param {import('../../services/patientsService').Patient | null} props.patient Sin paciente no se muestra.
+ * @param {number} props.assignmentCount Asignaciones que se borrarán con él.
  * @param {() => void} props.onClose
  * @param {(patient: import('../../services/patientsService').Patient) => void} [props.onDeleted]
+ * @param {(restored: { patient: object, assignments: object[] }) => void} [props.onRestored] Recreados con otros ids.
  */
-function DeletePatientDialog({ patient, onClose, onDeleted }) {
-  return patient ? <DeletePatientContent patient={patient} onClose={onClose} onDeleted={onDeleted} /> : null
+function DeletePatientDialog({ patient, ...props }) {
+  return patient ? <DeletePatientContent patient={patient} {...props} /> : null
 }
 
-function DeletePatientContent({ patient, onClose, onDeleted }) {
-  const { deletePatient, restorePatient } = usePatients()
-  const { assignments } = useAssignments(patient.id)
+function DeletePatientContent({ patient, assignmentCount, onClose, onDeleted, onRestored }) {
   const notify = useNotify()
 
-  const undo = async (snapshot) => {
+  const undo = async (assignments) => {
     try {
-      await restorePatient(snapshot)
+      const restored = await patientService.restore(patient, assignments)
+      onRestored?.(restored)
       notify('Paciente restaurado')
     } catch (error) {
       notify({ message: `No se pudo restaurar: ${errorMessage(error)}`, tone: 'error' })
@@ -40,10 +40,10 @@ function DeletePatientContent({ patient, onClose, onDeleted }) {
 
   const handleConfirm = async () => {
     try {
-      const snapshot = await deletePatient(patient.id)
+      const assignments = await patientService.remove(patient.id)
       onClose()
       onDeleted?.(patient)
-      notify({ message: 'Paciente eliminado', action: { label: 'Deshacer', onClick: () => undo(snapshot) } })
+      notify({ message: 'Paciente eliminado', action: { label: 'Deshacer', onClick: () => undo(assignments) } })
     } catch (error) {
       onClose()
       notify({ message: errorMessage(error), tone: 'error' })
@@ -57,7 +57,7 @@ function DeletePatientContent({ patient, onClose, onDeleted }) {
       onConfirm={handleConfirm}
       tone="danger"
       title={`¿Eliminar a ${patient.name}?`}
-      description={`${cascadeMessage(assignments.length)} Su tarjeta quedará libre.`}
+      description={`${cascadeMessage(assignmentCount)} Su tarjeta quedará libre.`}
       confirmLabel="Eliminar"
     />
   )

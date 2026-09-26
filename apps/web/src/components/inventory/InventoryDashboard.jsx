@@ -7,17 +7,18 @@ import RefillAlertsPanel from './RefillAlertsPanel'
 import SensorFeedPanel from './SensorFeedPanel'
 import PageHeader from '../layout/PageHeader'
 import { DISPENSER } from '../../data/dispenser'
-import useDispenser from '../../hooks/useDispenser'
 import useNotify from '../../hooks/useNotify'
 import { errorMessage } from '../../lib/errors'
 import { refillMessage } from '../../utils/inventorySelectors'
 
 /**
- * Inventario en vivo. Se monta cuando los datos ya cargaron, porque el estado
- * inicial del dispensador se arma con ellos.
+ * Inventario en vivo con los datos de la API (ver useInventory). Se monta
+ * cuando los datos ya cargaron.
+ *
+ * @param {object} props
+ * @param {ReturnType<typeof import('../../hooks/useInventory').default>} props.dispenser
  */
-function InventoryDashboard() {
-  const dispenser = useDispenser()
+function InventoryDashboard({ dispenser }) {
   const notify = useNotify()
   const { refill } = dispenser
 
@@ -38,14 +39,17 @@ function InventoryDashboard() {
       <PageHeader
         eyebrow={`Monitoreo en tiempo real · Dispensador ${DISPENSER.id}`}
         title="Inventario"
-        actions={<InventoryHeaderActions lastSyncAt={dispenser.lastSyncAt} onSync={dispenser.sync} />}
+        actions={
+          <InventoryHeaderActions
+            lastSyncAt={dispenser.lastSyncAt}
+            lastSeenAt={dispenser.lastSeenAt}
+            isOnline={dispenser.isDispenserOnline}
+            onSync={dispenser.sync}
+          />
+        }
       />
 
-      <InventoryStats
-        totals={dispenser.totals}
-        alertCount={dispenser.lowCompartments.length}
-        temperature={dispenser.temperature}
-      />
+      <InventoryStats totals={dispenser.totals} alertCount={dispenser.lowCompartments.length} />
 
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
         <DoseChartPanel

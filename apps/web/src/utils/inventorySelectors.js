@@ -1,10 +1,16 @@
-import { CRITICAL_STOCK, LOW_STOCK_RATIO } from '../constants/inventory'
+import { CRITICAL_STOCK, LOW_STOCK_RATIO, SENSOR_EVENT } from '../constants/inventory'
 import { COMPARTMENT_IDS } from '../constants/medications'
+import { DOSE_BLOCK_HOURS } from '../constants/schedule'
 import { patientShortName } from './labels'
-import { appliesOn, pillsLabel } from './schedule'
+import { pillsLabel, toTimeString } from './schedule'
+import { blockHourOf } from './selectors'
 
-/** @typedef {import('../data/inventory').DoseSlot} DoseSlot */
-/** @typedef {DoseSlot & { dispensed: number }} DoseSlotState */
+/**
+ * @typedef {object} DoseSlot
+ * @property {number} hour Hora de inicio del bloque de 2 h (0–23).
+ * @property {number} planned Tomas programadas en ese bloque.
+ */
+/** @typedef {DoseSlot & { dispensed: number, missed?: number }} DoseSlotState */
 /** @typedef {'ok' | 'low' | 'critical'} StockLevel */
 
 /**
@@ -16,8 +22,9 @@ import { appliesOn, pillsLabel } from './schedule'
  * @property {string} medicationId
  * @property {string} medication Nombre ("Metformina").
  * @property {string} dose Concentración ("850 mg").
- * @property {number} left Pastillas restantes (medidas por el sensor infrarrojo).
+ * @property {number} left Pastillas restantes (stock de la API; cada toma entregada lo descuenta).
  * @property {number} capacity
+ * @property {number | undefined} lowStockAt stockMinimoAlerta de la pastilla.
  * @property {import('../services/patientsService').Patient[]} patients Pacientes a los que se les entrega.
  */
 
@@ -33,6 +40,7 @@ export function toInventoryCompartment({ id, medication, patients }) {
     dose: `${medication.strength} ${medication.unit}`,
     left: medication.stock,
     capacity: medication.capacity,
+    lowStockAt: medication.lowStockAt,
     patients,
   }
 }
@@ -42,8 +50,11 @@ export function toInventoryCompartment({ id, medication, patients }) {
 /** @param {Compartment} compartment */
 export const stockPct = (compartment) => Math.round((compartment.left / compartment.capacity) * 100)
 
-/** @param {Compartment} compartment */
-export const isLow = (compartment) => compartment.left / compartment.capacity <= LOW_STOCK_RATIO
+/** Con `lowStockAt` usa ese umbral; si no, el 25% de la capacidad. @param {Compartment} compartment */
+export const isLow = (compartment) =>
+  compartment.lowStockAt != null
+    ? compartment.left <= compartment.lowStockAt
+    : compartment.left / compartment.capacity <= LOW_STOCK_RATIO
 
 /** @param {Compartment} compartment */
 export const isCritical = (compartment) => compartment.left <= CRITICAL_STOCK
@@ -83,27 +94,62 @@ export function patientsLabel(patients) {
   return patients.length === 1 ? first : `${first} +${patients.length - 1}`
 }
 
-/**
- * Tomas que el dispensador puede entregar ahora: asignaciones que aplican hoy
- * cuyo medicamento está cargado y conserva al menos una pastilla después de
- * la toma (para que la demo no vacíe compartimentos).
- *
- * @param {import('../services/assignmentsService').Assignment[]} assignments
- * @param {Compartment[]} compartments Solo los cargados.
- * @param {import('../services/patientsService').Patient[]} patients
- * @param {Date} date
- * @returns {import('../services/dispenserSimulator').DispenseCandidate[]}
- */
-export function dispenseCandidates(assignments, compartments, patients, date) {
-  const compartmentByMedication = new Map(compartments.map((compartment) => [compartment.medicationId, compartment]))
-  const patientById = new Map(patients.map((patient) => [patient.id, patient]))
+/* ---------- Tareas del dispensador ---------- */
 
-  return assignments.flatMap((assignment) => {
-    const compartment = compartmentByMedication.get(assignment.medicationId)
-    const patient = patientById.get(assignment.patientId)
-    if (!compartment || !patient || compartment.left <= assignment.quantity || !appliesOn(assignment, date)) return []
-    return [{ card: patient.card, compartmentId: compartment.id, quantity: assignment.quantity }]
-  })
+/**
+ * Evento del feed "Actividad del sensor", armado a partir de una tarea ya
+ * entregada o perdida.
+ *
+ * @typedef {object} FeedEvent
+ * @property {string} id
+ * @property {'DOSE_DISPENSED' | 'DOSE_MISSED'} type
+ * @property {number} at Timestamp (ms).
+ * @property {number} compartmentId
+ * @property {string} medication
+ * @property {string} dose
+ * @property {string | null} patientName
+ * @property {string | null} card
+ */
+
+/**
+ * Tomas del día por bloque de 2 h: programadas (todas), dispensadas y perdidas.
+ *
+ * @param {import('../services/taskService').DispenserTask[]} tasks Las de hoy.
+ * @returns {DoseSlotState[]}
+ */
+export function taskSlots(tasks) {
+  const slots = new Map(DOSE_BLOCK_HOURS.map((hour) => [hour, { hour, planned: 0, dispensed: 0, missed: 0 }]))
+  for (const task of tasks) {
+    const slot = slots.get(blockHourOf(toTimeString(new Date(task.scheduledAt))))
+    slot.planned += 1
+    if (task.status === 'completed') slot.dispensed += 1
+    if (task.status === 'missed') slot.missed += 1
+  }
+  return [...slots.values()]
+}
+
+/**
+ * Últimas tomas entregadas o perdidas, de la más reciente a la más vieja.
+ *
+ * @param {import('../services/taskService').DispenserTask[]} tasks
+ * @param {number} max
+ * @returns {FeedEvent[]}
+ */
+export function taskFeed(tasks, max) {
+  return tasks
+    .filter((task) => task.status === 'completed' || task.status === 'missed')
+    .map((task) => ({
+      id: task.id,
+      type: task.status === 'completed' ? SENSOR_EVENT.doseDispensed : SENSOR_EVENT.doseMissed,
+      at: task.dispensedAt ?? task.scheduledAt,
+      compartmentId: task.compartmentId,
+      medication: task.medication,
+      dose: task.dose,
+      patientName: task.patientName,
+      card: task.card,
+    }))
+    .sort((a, b) => b.at - a.at)
+    .slice(0, max)
 }
 
 /* ---------- Horarios de dosis ---------- */
@@ -120,17 +166,6 @@ export function currentSlotIndex(slots, date) {
   return Math.max(0, slots.findLastIndex((slot) => slot.hour <= hour))
 }
 
-/**
- * Horario al que se le suma una dosis nueva: el actual o, si ya está completo,
- * el siguiente con lugar. -1 si ya no queda ninguno.
- *
- * @param {DoseSlotState[]} slots
- * @param {number} fromIndex
- */
-export function nextOpenSlotIndex(slots, fromIndex) {
-  return slots.findIndex((slot, index) => index >= fromIndex && slot.dispensed < slot.planned)
-}
-
 /** @param {number} hour */
 export const formatSlotHour = (hour) => `${String(hour).padStart(2, '0')}:00`
 
@@ -143,10 +178,13 @@ export const formatSlotHour = (hour) => `${String(hour).padStart(2, '0')}:00`
 export function inventoryTotals(slots, compartments) {
   const dispensed = slots.reduce((sum, slot) => sum + slot.dispensed, 0)
   const planned = slots.reduce((sum, slot) => sum + slot.planned, 0)
+  // Las perdidas ya no se van a entregar: no cuentan como pendientes.
+  const missed = slots.reduce((sum, slot) => sum + (slot.missed ?? 0), 0)
   return {
     dispensed,
     planned,
-    pending: Math.max(0, planned - dispensed),
+    missed,
+    pending: Math.max(0, planned - dispensed - missed),
     progressPct: planned ? Math.min(100, Math.round((dispensed / planned) * 100)) : 0,
     stock: compartments.reduce((sum, compartment) => sum + compartment.left, 0),
     capacity: compartments.reduce((sum, compartment) => sum + compartment.capacity, 0),

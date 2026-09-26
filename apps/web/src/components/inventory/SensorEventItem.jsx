@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { Nfc, TriangleAlert } from 'lucide-react'
+import { CircleX, Nfc } from 'lucide-react'
 import { memo, useEffect, useState } from 'react'
 import { CARD_COLORS } from '../../constants/cardColors'
 import { SENSOR_EVENT } from '../../constants/inventory'
@@ -17,11 +17,11 @@ const VARIANTS = {
       event.card ? `Tarjeta ${CARD_COLORS[event.card].label} · ${event.patientName}` : 'Dosis entregada',
     detail: (event) => `Dosis entregada: ${event.medication} ${event.dose}`,
   },
-  [SENSOR_EVENT.lowStock]: {
-    icon: TriangleAlert,
+  [SENSOR_EVENT.doseMissed]: {
+    icon: CircleX,
     iconBox: 'bg-warn-soft text-warn-ink',
-    title: (event) => `Sensor de nivel: ${event.medication} bajo`,
-    detail: (event) => event.patientName ?? `Compartimento C${event.compartmentId}`,
+    title: (event) => `Toma no dispensada · ${event.patientName ?? 'Paciente eliminado'}`,
+    detail: (event) => `${event.medication} ${event.dose} · C${event.compartmentId}`,
   },
 }
 
@@ -35,7 +35,7 @@ const HIGHLIGHT = {
  * resaltado y se desvanece solo.
  *
  * @param {object} props
- * @param {import('../../hooks/useDispenser').FeedEvent} props.event
+ * @param {import('../../utils/inventorySelectors').FeedEvent} props.event
  * @param {boolean} props.isNew
  */
 function SensorEventItem({ event, isNew }) {

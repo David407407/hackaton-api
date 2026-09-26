@@ -57,6 +57,3 @@ export function createDefaultAvatar(title, index) {
     ...AVATAR_OUTFITS[index % AVATAR_OUTFITS.length],
   };
 }
-
-/** Lado en px al que se reduce la foto antes de guardarla. */
-export const PHOTO_SIZE = 256;

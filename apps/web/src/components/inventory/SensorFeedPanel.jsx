@@ -6,7 +6,7 @@ import Panel from '../ui/Panel'
  * Panel "Actividad del sensor": los eventos más recientes, el más nuevo arriba.
  *
  * @param {object} props
- * @param {import('../../hooks/useDispenser').FeedEvent[]} props.events
+ * @param {import('../../utils/inventorySelectors').FeedEvent[]} props.events
  * @param {string | null} props.latestEventId Id del último evento que llegó en vivo.
  */
 function SensorFeedPanel({ events, latestEventId }) {
