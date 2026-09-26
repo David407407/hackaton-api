@@ -12,15 +12,17 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST: Crear paciente y asignarle pastillas (pasando un arreglo de _id de pastillas)
+// POST: Crear paciente
 router.post('/', async (req, res) => {
   try {
-    const { nombre, edad, genero, pastillas } = req.body; // pastillas debe ser un array de ObjectIds
+    const { nombre, edad, genero, colorTarjeta, porcentajeAdherencia, pastillas } = req.body;
     
     const newPatient = new Patient({
       nombre,
       edad,
       genero,
+      colorTarjeta,
+      porcentajeAdherencia: porcentajeAdherencia || 100,
       pastillas: pastillas || []
     });
 
@@ -31,13 +33,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT: Actualizar paciente o agregarle/quitarle pastillas
+// PUT: Actualizar datos del paciente o sus pastillas asignadas
 router.put('/:id', async (req, res) => {
   try {
     const updatedPatient = await Patient.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true, runValidators: true }
     ).populate('pastillas');
     
     res.status(200).json({ message: 'Paciente actualizado', patient: updatedPatient });

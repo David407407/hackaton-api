@@ -1,14 +1,15 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  // Mongoose crea el _id automáticamente, pero si quieres usar un ID legible o incremental, 
-  // el ObjectId por defecto de MongoDB ya es único globalmente.
   nombre: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   usuario: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
-}, { 
-  timestamps: true,
-  versionKey: false // Opcional: quita el campo '__v' de control de versiones que pone Mongo
-});
+  password: { type: String, required: true },
+  turno: { 
+    type: String, 
+    enum: ['Matutino', 'Vespertino', 'Nocturno'], 
+    default: 'Matutino' 
+  }
+}, { timestamps: true, versionKey: false });
 
 module.exports = mongoose.model('User', userSchema);

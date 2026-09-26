@@ -15,8 +15,16 @@ router.get('/', async (req, res) => {
 // POST: Crear un nuevo usuario (Registro)
 router.post('/', async (req, res) => {
   try {
-    const { nombre, usuario, password } = req.body;
-    const newUser = new User({ nombre, usuario, password });
+    const { nombre, email, usuario, password, turno } = req.body;
+    
+    const newUser = new User({ 
+      nombre, 
+      email, 
+      usuario, 
+      password,
+      turno: turno || 'Matutino' 
+    });
+    
     await newUser.save();
     res.status(201).json({ message: 'Usuario creado con éxito', user: newUser });
   } catch (error) {

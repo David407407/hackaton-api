@@ -1,75 +1,71 @@
 @baseUrl = http://localhost:4000/api
+# Si ya lo estás probando directo en la nube de Render, usa tu URL de Render:
+# @baseUrl = https://tu-proyecto.onrender.com/api
 
 ### ==========================================
-### 1. PRUEBAS DE USUARIOS
+### 1. PROBAR USUARIOS (Enfermeros)
 ### ==========================================
 
-### Obtener todos los usuarios
-GET {{baseUrl}}/users
-
-### Crear un nuevo usuario
+### Crear un usuario con los campos nuevos (Turno Enum)
 POST {{baseUrl}}/users
 Content-Type: application/json
 
 {
-  "nombre": "Admin Principal",
-  "usuario": "admin",
-  "password": "123"
+  "nombre": "Enf. Laura Medina",
+  "email": "laura.medina@casadelsol.mx",
+  "usuario": "laura_medina",
+  "password": "securepassword123",
+  "turno": "Matutino"
 }
 
-### (Copia un ID de usuario de la respuesta y pégalo abajo para borrarlo)
-# DELETE {{baseUrl}}/users/AQUI_EL_ID_DE_USUARIO
+### Obtener lista de usuarios
+GET {{baseUrl}}/users
 
 
 ### ==========================================
-### 2. PRUEBAS DE PASTILLAS
+### 2. PROBAR PASTILLAS (Inventario / Slots)
 ### ==========================================
 
-### Obtener todas las pastillas
-GET {{baseUrl}}/pills
-
-### Crear una nueva pastilla
+### Crear una pastilla (Slot 1, con stock inicial y horas)
 POST {{baseUrl}}/pills
 Content-Type: application/json
 
 {
-  "nombre": "Paracetamol",
-  "dosis": "500mg",
-  "fechaInicio": "2026-03-26T00:00:00.000Z",
+  "nombre": "Metformina",
+  "dosis": "850 mg",
+  "slotCompartimento": 1,
+  "stockActual": 30,
+  "stockMinimoAlerta": 5,
+  "fechaInicio": "2026-09-26T00:00:00.000Z",
   "recurrencia": {
     "tipo": "intervalo",
     "intervaloHoras": 8,
-    "horas": ["08:00", "16:00", "00:00"]
+    "horas": ["08:00", "14:00", "22:00"]
   }
 }
 
+### Obtener lista de pastillas
+GET {{baseUrl}}/pills
+
 
 ### ==========================================
-### 3. PRUEBAS DE PACIENTES (Relación con Pastillas)
+### 3. PROBAR PACIENTES (Con Colores Enum y Género)
 ### ==========================================
 
-### Obtener pacientes (con las pastillas "populadas")
-GET {{baseUrl}}/patients
-
-### Crear un paciente 
-### (IMPORTANTE: Reemplaza el valor de "pastillas" con el _id real 
-### que te devolvió la petición de crear pastilla aquí arriba)
+### Crear un paciente (Asegúrate de poner un ID de pastilla válido de arriba)
 POST {{baseUrl}}/patients
 Content-Type: application/json
 
 {
-  "nombre": "Don Pancho",
-  "edad": 72,
-  "genero": "Masculino",
+  "nombre": "Carmen Ruiz",
+  "edad": 82,
+  "genero": "Femenino",
+  "colorTarjeta": "Azul",
+  "porcentajeAdherencia": 96,
   "pastillas": [
     "6ab7647ef90063d37df0c130"
   ]
 }
 
-### Actualizar un paciente por ID
-PUT {{baseUrl}}/patients/6ab7649af90063d37df0c131
-Content-Type: application/json
-
-{
-  "edad": 73
-}
+### Obtener pacientes con sus pastillas "populadas"
+GET {{baseUrl}}/patients

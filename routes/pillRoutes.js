@@ -12,15 +12,40 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST: Crear una pastilla suelta
+// POST: Crear una pastilla / inventario
 router.post('/', async (req, res) => {
   try {
-    const { nombre, dosis, fechaInicio, recurrencia } = req.body;
-    const newPill = new Pill({ nombre, dosis, fechaInicio, recurrencia });
+    const { nombre, dosis, slotCompartimento, stockActual, stockMinimoAlerta, fechaInicio, recurrencia } = req.body;
+    
+    const newPill = new Pill({ 
+      nombre, 
+      dosis, 
+      slotCompartimento, 
+      stockActual, 
+      stockMinimoAlerta, 
+      fechaInicio, 
+      recurrencia 
+    });
+
     await newPill.save();
     res.status(201).json({ message: 'Pastilla creada con éxito', pill: newPill });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear pastilla', details: error.message });
+  }
+});
+
+// PUT: Actualizar stock de la pastilla (Ideal para cuando se recargue o se dispense)
+router.put('/:id/stock', async (req, res) => {
+  try {
+    const { stockActual } = req.body;
+    const updatedPill = await Pill.findByIdAndUpdate(
+      req.params.id,
+      { stockActual },
+      { new: true }
+    );
+    res.status(200).json({ message: 'Stock actualizado con éxito', pill: updatedPill });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar stock', details: error.message });
   }
 });
 
